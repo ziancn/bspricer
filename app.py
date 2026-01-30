@@ -5,7 +5,7 @@ import streamlit as st
 import yfinance as yf
 import plotly.graph_objects as go
 
-from utils import black_scholes, calc_hist_vol, get_risk_free_rate
+from utils import black_scholes, calc_hist_vol, get_risk_free_rate, bs_delta
 
 logging.basicConfig(level=logging.INFO)
 
@@ -144,11 +144,47 @@ put_px = black_scholes(
     r=rfr,
     option_type='put')
 
+# Greeks: Delta
+call_delta = bs_delta(spot_px, strike_px, t, rfr, vol_value, option_type='call')
+put_delta = bs_delta(spot_px, strike_px, t, rfr, vol_value, option_type='put')
+
+# Display option prices and Greeks in a table (fast, show first)
+import pandas as pd
+
+pricing_data = {
+    'Metric': ['Price ($)', 'Price (%)', 'Delta'],
+    'CALL': [f'{call_px:.2f}', f'{call_px/spot_px*100:.2f}%', f'{call_delta*100:.2f}%'],
+    'PUT': [f'{put_px:.2f}', f'{put_px/spot_px*100:.2f}%', f'{put_delta*100:.2f}%']
+}
+
+df = pd.DataFrame(pricing_data)
+
+# Apply column colors: light green for CALL, light red for PUT
+styled_df = (df.style
+    .map(lambda v: 'background-color: rgba(200, 230, 201, 0.3)', 
+         subset=['CALL'])
+    .map(lambda v: 'background-color: rgba(255, 204, 204, 0.3)', 
+         subset=['PUT']))
+
+st.dataframe(styled_df, width='stretch', hide_index=True,
+             column_config={
+                 'Metric': st.column_config.Column(width='content')
+             })
+
+@st.cache_data(ttl=3600)
+def fetch_stock_data(ticker, period="1y"):
+    """Fetch stock data with caching to speed up repeated requests"""
+    try:
+        return yf.Ticker(ticker).history(period=period)
+    except Exception as e:
+        logging.error(f"Failed to fetch stock data for {ticker}: {str(e)}")
+        return None
+
+
 if use_real_data and ticker:
     try:
         with st.spinner(f'Loading 1-year historical data for {ticker}...'):
-            time.sleep(0.5)  # Avoid rate limiting
-            stock_data = yf.Ticker(ticker).history(period="1y")
+            stock_data = fetch_stock_data(ticker)
             
             if stock_data is None or len(stock_data) == 0:
                 st.error(f"Unable to fetch historical data for {ticker}")
@@ -163,45 +199,3 @@ if use_real_data and ticker:
         error_msg = str(e)[:150]
         st.error(f"Failed to fetch historical data\n\nError: {error_msg}\n\nPossible cause: Yahoo Finance rate limiting or network issue")
         logging.error(f"Exception fetching historical chart - {ticker}: {str(e)}")
-
-st.markdown(f"""
-    <style>
-    .card-container {{
-        display: flex;
-        gap: 1rem;
-        withth: 100%;
-        margin: 0;
-    }}
-    .card {{
-        flex-grow: 1;               
-        min-width: 150px;    
-        padding: 1rem;
-        border-radius: 10px;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-        text-align: center;
-        font-size: 1rem;
-        font-weight: bold;
-    }}
-    .call-card {{
-        background-color: #b8f1b0;
-        color: #006400;
-    }}
-    .put-card {{
-        background-color: #f1b0b0;
-        color: #8b0000;
-    }}
-    </style>
-    
-    <div style="display: flex; gap: 1rem; justify-content: center;">
-        <div class="card call-card">
-            CALL<br>
-            Per unit: ${call_px:.2f} <br>
-            Percentage: {call_px/spot_px*100:.2f}%
-        </div>
-        <div class="card put-card">
-            PUT<br>
-            Per unit: ${put_px:.2f} <br>
-            Percentage: {put_px/spot_px*100:.2f}%
-        </div>
-    </div>
-""", unsafe_allow_html=True)

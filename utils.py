@@ -44,6 +44,32 @@ def black_scholes(S, K, T, r, sigma, option_type="call"):
         return K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
     else:
         return None
+
+
+def bs_delta(S, K, T, r, sigma, option_type="call"):
+    """Black-Scholes delta.
+
+    For a call: delta = N(d1)
+    For a put:  delta = N(d1) - 1
+    Returns a float between 0 and 1 for calls (or negative for puts).
+    """
+    # Handle edge cases: non-positive time or zero volatility -> intrinsic deltas
+    try:
+        if T <= 0 or sigma <= 0:
+            if option_type == "call":
+                return 1.0 if S > K else 0.0
+            else:
+                return -1.0 if S < K else 0.0
+
+        d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
+        if option_type == "call":
+            return float(norm.cdf(d1))
+        else:
+            return float(norm.cdf(d1) - 1.0)
+    except Exception:
+        # Fallback: return 0.0 to avoid crashing the app
+        logging.warning("bs_delta: invalid inputs, returning 0.0")
+        return 0.0
     
 
 
