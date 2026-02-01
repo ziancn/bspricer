@@ -30,7 +30,7 @@ def keep_app_awake():
     with sync_playwright() as p:
         browser = p.chromium.launch(
             channel="chrome",
-            headless=False
+            headless=True
         )
         context = browser.new_context(
             viewport={'width': 1280, 'height': 800},
