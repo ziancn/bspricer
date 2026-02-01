@@ -40,7 +40,7 @@ def keep_app_awake():
 
         success = False
         try:
-            print("1. Navigating（there might be redircting）...")
+            print("Navigating（there might be redircting）...")
             page.goto(APP_URL, timeout=TIMEOUT_SEC*1_000, wait_until="networkidle")
 
             # Check hibernation
