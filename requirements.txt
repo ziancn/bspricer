@@ -1,8 +1,0 @@
-streamlit
-scipy
-yfinance
-plotly
-datetime
-pandas
-numpy
-logging
