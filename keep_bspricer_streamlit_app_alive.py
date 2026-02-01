@@ -10,7 +10,7 @@ import time
 import datetime
 import re
 
-APP_URL = "https://youtube.com"
+APP_URL = "https://bspricer.streamlit.app/"
 EXPECTED_TITLE = "Naïve Option Pricer"
 TIMEOUT_SEC = 60
 IFRAME_TIMEOUT_SEC = 60
